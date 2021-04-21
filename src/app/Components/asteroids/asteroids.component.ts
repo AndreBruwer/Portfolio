@@ -25,6 +25,11 @@ export class AsteroidsComponent implements OnInit {
   fps = 30;
   frame;
   stars = [];
+  coin;
+  score = {coins:0,rocks:0};
+  eventSet = false;
+
+  keysPressed = {};
   constructor() {}
 
   ngOnInit(): void {
@@ -33,12 +38,13 @@ export class AsteroidsComponent implements OnInit {
     this.width = this.canvas_container.clientWidth;
     this.height = this.canvas_container.clientHeight;
     this.canvas.width = this.width;
-    this.canvas.height = (this.width*0.6);
+    this.canvas.height = (this.width*0.57);
     this.ctx = this.canvas.getContext('2d');
 
     this.ctx.font = "30px Arial";
     this.ctx.fillStyle = "white";
     this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+    this.eventSet = false;
   }
   ngOnDestroy(){
     document.onkeydown = null;
@@ -78,35 +84,74 @@ export class AsteroidsComponent implements OnInit {
 
   StartGame(){
     if(this.animateGame == false){
+      this.score = {coins:0,rocks:0};
+      this.rocks = [];
+      this.stars = [];
+      this.lazarBolts = [];
       this.animateGame = true;
       this.shuttle = new Shuttle(this.canvas.width/2, this.canvas.height/2, this.ctx, this.canvas);
-      document.addEventListener("keydown", e => {
-        if(e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key == 'ArrowDown' || e.key == 'ArrowRight' || e.key == ' '){
+      if(this.eventSet == false){
+        document.addEventListener("keydown", e => {
           e.preventDefault();
-          if (e.key === 'ArrowUp') {
-            //up arrow
-            this.accelerate();
+          if(e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key == 'ArrowDown' || e.key == 'ArrowRight' || e.key == ' '){
+            this.keysPressed[e.key] = true;
+
+            if(e.key == ' '){
+              this.shoot();
+            }
+            else if (this.keysPressed['ArrowUp']) {
+              if(e.key == 'ArrowLeft'){
+                this.turnLeft();
+              }
+              if(e.key == 'ArrowRight'){
+                this.turnRight();
+              }
+              this.accelerate();
+            }
+            else if (this.keysPressed['ArrowDown']) {
+              if(e.key == 'ArrowLeft'){
+                this.turnLeft();
+              }
+              if(e.key == 'ArrowRight'){
+                this.turnRight();
+              }
+              this.decelerate();
+            }
+            else if (this.keysPressed['ArrowLeft']) {
+              this.turnLeft();
+              if(e.key == 'ArrowUp'){
+                this.accelerate();
+              }
+              if(e.key == 'ArrowDown'){
+                this.turnRight();
+              }
+            }
+            else if (this.keysPressed['ArrowRight']) {
+              this.turnRight();
+
+              if(e.key == 'ArrowUp'){
+                this.accelerate();
+              }
+              if(e.key == 'ArrowDown'){
+                this.decelerate();
+              }
+            }
           }
-          if (e.key == 'ArrowDown') {
-            // down arrow
-            this.decelerate();
-          }
-          if (e.key === 'ArrowLeft') {
-            // left arrow
-            this.turnLeft();
-          }
-          if (e.key == 'ArrowRight') {
-            // right arrow
-            this.turnRight();
-          }
-          if (e.key == ' ') {
-            //space
-            this.shoot();
-          }
-        }
-      });
+        });
+        document.addEventListener('keyup', (e) => {
+          delete this.keysPressed[e.key];
+       });
+        this.eventSet = true;
+      }
       for(let i = 0; i< 100; i++){
         this.stars.push(new Star({x:Math.random()*this.canvas.width,y:Math.random()*this.canvas.height},this.ctx));
+      }
+      this.coin = new Coin(Math.random()*this.canvas.width,Math.random()*this.canvas.height,this.ctx)
+
+      
+
+      for(let i = 0;i< 20;i++){
+        this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
       }
       this.drawFrame(1000/this.fps, this.ctx);
       this.canvas.scrollIntoView();
@@ -115,14 +160,17 @@ export class AsteroidsComponent implements OnInit {
   }
   StopGame(){
     this.animateGame = false;
-    document.onkeydown = null;
+    
+    document.addEventListener("keydown", e => {});
     clearTimeout(this.frame);
+    
     this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     this.ctx.font = "30px Arial";
     this.ctx.fillStyle = "white";
     this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+    
   }
-  
+
 //controls
   turnLeft(){
     this.shuttle.angle = this.shuttle.angle + 360/24*-1;
@@ -140,12 +188,47 @@ export class AsteroidsComponent implements OnInit {
   }
   shoot(){
     if(this.lazarBolts.length <= 20)
-    this.lazarBolts.push(new LazarBolt(this.shuttle.core.x,this.shuttle.core.y,this.ctx,this.canvas, this.shuttle.angle));
+    this.lazarBolts.push(new LazarBolt(this.shuttle.core.x,this.shuttle.core.y,this.ctx,this.canvas, this.shuttle.angle,this.shuttle.momentum));
+  }
+  getDistance(point1, point2){
+    return Math.sqrt(Math.pow((point2.x - point1.x),2) + Math.pow((point2.y - point1.y),2));
+  }
+  calculateCollisions(){
+    //lazer and coin
+    for(let i = 0; i < this.lazarBolts.length; i++){
+      let bolt = this.lazarBolts[i];
+      if(this.getDistance(bolt.core, this.coin.core) <= 10){
+        this.lazarBolts.splice(i,1);
+        this.coin = new Coin(Math.random()*this.canvas.width,Math.random()*this.canvas.height,this.ctx);
+        this.score.coins++;
+        break;
+      }
+    }  
+    //lazer and rocks
+    for(let i = 0; i < this.lazarBolts.length; i++){
+      let bolt = this.lazarBolts[i];
+      for(let j = 0; j< this.rocks.length;j++){
+        if(this.getDistance(bolt.core,  this.rocks[j].core) <= this.rocks[j].radius){
+          this.rocks.splice(j,1);
+          this.lazarBolts.splice(i,1);
+
+          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
+          this.score.rocks++;
+          break;
+        }
+      }
+    }
+    for(let i = 0;i< this.rocks.length ;i++){
+      if(this.getDistance(this.shuttle.core,  this.rocks[i].core) <= this.rocks[i].radius+10){
+        this.StopGame();
+      }
+    }
   }
 
   drawFrame(ms:number,ctx){
     ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
     if(this.animateGame == true){
+      //draw
       //starts
       this.stars.forEach(star =>{
         star.draw();
@@ -164,23 +247,128 @@ export class AsteroidsComponent implements OnInit {
         }
       }
       //boulders
-
+      this.coin.draw();
       //repeat
+      
+      for(let i = 0;i<this.rocks.length;i++){
+        if(this.rocks[i].core.x > this.canvas.width+30 || this.rocks[i].core.x < -30 || this.rocks[i].core.y > this.canvas.height+30 || this.rocks[i].core.y < -30){
+          this.rocks.splice(i,1);
+          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
+          i--;
+        }
+        else{
+          this.rocks[i].draw();
+        }
+        
+      }
+
+      //colisions
+      this.calculateCollisions();
       this.frame = setTimeout(() =>{this.drawFrame(ms,ctx)},ms)
     }
+    else{
+      this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+      this.ctx.font = "30px Arial";
+      this.ctx.fillStyle = "white";
+      this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+    }
+  }
+}
+
+class Coin{
+  core = {x:0,y:0};
+  ctx;
+  constructor(posX, posY, ctx){
+    this.core = {x:posX, y:posY};
+    this.ctx = ctx;
+  }
+  draw(){
+    this.ctx.beginPath();
+    this.ctx.arc(this.core.x, this.core.y, 10, 0, 2 * Math.PI, false);
+    this.ctx.fillStyle = 'gold';
+    this.ctx.fill();
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = 'white';
+    this.ctx.stroke();
   }
 }
 class Rock{
   core = {x:0,y:0};
   points = [];
+  heights = [];
   flamePoints = [];
   angle = 0;
+  rotationSpeed = 3;
   momentum = {x:0,y:0};
   ctx;
-  canvas;
   radius;
-  constructor(){
+  edges = 24;
+  constructor(posX, posY,ctx, rad, canvas){
+    rad = rad-2 + Math.random() * 6;
+    let pos = Math.random();
+    if(pos < 0.25){
+      posY = -20;
+    }else if(pos < 0.5){
+      posX = -20;
+    }else if(pos < 0.75){
+      posY = canvas.height+20;
+    }else{
+      posX = canvas.width+20
+    }
+
+    this.core = {x:posX,y:posY};
+    this.ctx = ctx;
+    this.radius = rad;
+    this.rotationSpeed = Math.random()*5;
+    if(Math.random() < 0.5){
+      this.rotationSpeed *= -1;
+    }
+
+    this.momentum = {x:Math.random()*3, y:Math.random()*3};
+    if(Math.random() < 0.5){
+      this.momentum.x *= -1;
+    }
+    if(Math.random() < 0.5){
+      this.momentum.y *= -1;
+    }
+
     
+    for(let i = 0;i<this.edges;i++){
+      this.heights.push({x:0,y:-(rad + Math.random()*rad/3)})
+      this.points.push(this.heights[i]);
+      this.points[i] = this.RotatePoint({x:0,y:0} ,360/this.edges*i,this.points[i]);
+    }
+  }
+  draw(){
+    this.core = {x:this.core.x + this.momentum.x,y:this.core.y + this.momentum.y};
+    this.angle += this.rotationSpeed;
+    this.angle = this.angle % 360;
+    for(let i = 0;i<this.points.length;i++){
+      this.points[i] = {x:this.heights[i].x + this.core.x,y:this.heights[i].y + this.core.y}
+      this.points[i] = this.RotatePoint({x:this.core.x,y:this.core.y} ,this.angle,this.points[i]);
+    }
+
+    this.ctx.beginPath();
+    this.points.forEach(point => {
+      this.ctx.lineTo(point.x,point.y);
+    })
+    this.ctx.fillStyle = 'white';
+    this.ctx.fill();
+  }
+  RotatePoint(cPoint, angle, point){
+    let s = Math.sin(angle*Math.PI/180);
+    let c = Math.cos(angle*Math.PI/180);
+    // translate point back to origin:
+    point.x -= cPoint.x;
+    point.y -= cPoint.y;
+    // rotate point
+    let xnew = point.x * c - point.y * s;
+    let ynew = point.x * s + point.y * c;
+    // translate point back:
+    point.x = xnew + cPoint.x;
+    point.y = ynew + cPoint.y;
+    
+    return point;
   }
 }
 class Star{
@@ -191,7 +379,7 @@ class Star{
     this.ctx = ctx;
   }
   draw(){
-    let chance = Math.floor(Math.random()*100);
+    let chance = Math.floor(Math.random()*200);
     let outerSize = 7/2;
     let innerSize = 4/2;
     this.ctx.beginPath();
@@ -230,7 +418,7 @@ class LazarBolt{
   momentum = {x:0,y:0};
   ctx;
   canvas;
-  constructor(posX, posY, ctx, canvas, angle){
+  constructor(posX, posY, ctx, canvas, angle, shuttleMom){
     this.angle = angle;
     this.canvas = canvas;
     this.ctx = ctx;
@@ -241,6 +429,8 @@ class LazarBolt{
     this.points.push({x:this.core.x,y:this.core.y+5});
     this.momentum = {x:0,y:-5};
     this.momentum = this.RotatePoint({x:0,y:0},this.angle,this.momentum);
+    this.momentum.x += shuttleMom.x;
+    this.momentum.y += shuttleMom.y;
   }
   draw(){
     length = 10;
