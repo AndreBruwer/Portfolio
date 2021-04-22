@@ -28,6 +28,7 @@ export class AsteroidsComponent implements OnInit {
   coin;
   score = {coins:0,rocks:0};
   eventSet = false;
+  lives = 3;
 
   keysPressed = {};
   constructor() {}
@@ -84,6 +85,7 @@ export class AsteroidsComponent implements OnInit {
 
   StartGame(){
     if(this.animateGame == false){
+      this.lives = 3;
       this.score = {coins:0,rocks:0};
       this.rocks = [];
       this.stars = [];
@@ -151,7 +153,7 @@ export class AsteroidsComponent implements OnInit {
       
 
       for(let i = 0;i< 20;i++){
-        this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
+        this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas,true));
       }
       this.drawFrame(1000/this.fps, this.ctx);
       this.canvas.scrollIntoView();
@@ -209,10 +211,10 @@ export class AsteroidsComponent implements OnInit {
       let bolt = this.lazarBolts[i];
       for(let j = 0; j< this.rocks.length;j++){
         if(this.getDistance(bolt.core,  this.rocks[j].core) <= this.rocks[j].radius){
+          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas,true));
           this.rocks.splice(j,1);
           this.lazarBolts.splice(i,1);
-
-          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
+          
           this.score.rocks++;
           break;
         }
@@ -220,7 +222,14 @@ export class AsteroidsComponent implements OnInit {
     }
     for(let i = 0;i< this.rocks.length ;i++){
       if(this.getDistance(this.shuttle.core,  this.rocks[i].core) <= this.rocks[i].radius+10){
-        this.StopGame();
+        this.lives--;
+        if(this.lives == 0){
+          this.StopGame();
+        }
+        else{
+          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas,true));
+          this.rocks.splice(i,1);
+        }
       }
     }
   }
@@ -234,7 +243,7 @@ export class AsteroidsComponent implements OnInit {
         star.draw();
       })
       //shuttle
-      this.shuttle.draw();
+      this.shuttle.draw(this.lives);
       //projectiles
       for(let i = 0; i < this.lazarBolts.length; i++){
         let bolt = this.lazarBolts[i];
@@ -253,7 +262,8 @@ export class AsteroidsComponent implements OnInit {
       for(let i = 0;i<this.rocks.length;i++){
         if(this.rocks[i].core.x > this.canvas.width+30 || this.rocks[i].core.x < -30 || this.rocks[i].core.y > this.canvas.height+30 || this.rocks[i].core.y < -30){
           this.rocks.splice(i,1);
-          this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas));
+          if(this.rocks.length <= 20)
+            this.rocks.push(new Rock(Math.random() * (40 + this.canvas.width) -20,Math.random() * (40 + this.canvas.height) -20,this.ctx,10,this.canvas,true));
           i--;
         }
         else{
@@ -303,18 +313,21 @@ class Rock{
   ctx;
   radius;
   edges = 24;
-  constructor(posX, posY,ctx, rad, canvas){
-    rad = rad-2 + Math.random() * 6;
-    let pos = Math.random();
-    if(pos < 0.25){
-      posY = -20;
-    }else if(pos < 0.5){
-      posX = -20;
-    }else if(pos < 0.75){
-      posY = canvas.height+20;
-    }else{
-      posX = canvas.width+20
+  constructor(posX, posY,ctx, rad, canvas, randomPos:boolean){
+    rad = rad-2 + Math.random() * 15;
+    if(randomPos == true){
+      let pos = Math.random();
+      if(pos < 0.25){
+        posY = -20;
+      }else if(pos < 0.5){
+        posX = -20;
+      }else if(pos < 0.75){
+        posY = canvas.height+20;
+      }else{
+        posX = canvas.width+20
+      }
     }
+    
 
     this.core = {x:posX,y:posY};
     this.ctx = ctx;
@@ -446,7 +459,8 @@ class LazarBolt{
     this.ctx.beginPath();
     this.ctx.moveTo(this.points[0].x, this.points[0].y);
     this.ctx.lineTo(this.points[1].x, this.points[1].y);
-    this.ctx.strokeStyle = 'white';
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeStyle = 'lime';
     this.ctx.stroke();
   }
   RotatePoint(cPoint, angle, point){
@@ -497,7 +511,7 @@ class Shuttle{
     this.flamePoints.push({x:this.core.x-2,y:this.core.y+21});
     this.flamePoints.push({x:this.core.x-7,y:this.core.y+25});
   }
-  draw(){
+  draw(lives:number){
     this.core.x = this.core.x + this.momentum.x;
     this.core.y = this.core.y + this.momentum.y;
     this.points[0] = {x:this.core.x,y:this.core.y-20};
@@ -540,7 +554,12 @@ class Shuttle{
     //core
     this.ctx.beginPath();
     this.ctx.arc(this.core.x, this.core.y, 4, 0, 2 * Math.PI, false);
-    this.ctx.fillStyle = 'blue';
+    if(lives == 3)
+      this.ctx.fillStyle = 'blue';
+    else if(lives == 2)
+      this.ctx.fillStyle = 'yellow';
+    else if(lives == 1)
+      this.ctx.fillStyle = 'red';
     this.ctx.fill();
     
     //if outside of bounds
