@@ -1,0 +1,33 @@
+.name-card {
+  padding: 50px 15px;
+  background-color: #020101;
+  border-radius: 10px;
+  color: white;
+  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
+}
+.name-card img {
+  border-radius: 100%;
+}
+.name-card h4 {
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  letter-spacing: 2px;
+  word-spacing: 2px;
+  font-weight: normal;
+  text-decoration: underline rgb(68, 68, 68);
+  font-style: normal;
+  font-variant: normal;
+  text-transform: none;
+}
+.name-card h1,
+.welcome h1 {
+  font-family: Georgia, serif;
+  font-weight: normal;
+  font-style: italic;
+  font-variant: normal;
+  text-transform: none;
+}
+
+.skills img {
+  width: 100%;
+  border-radius: 5px;
+}
