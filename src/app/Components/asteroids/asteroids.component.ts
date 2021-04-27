@@ -29,6 +29,7 @@ export class AsteroidsComponent implements OnInit {
   score = {coins:0,rocks:0};
   eventSet = false;
   lives = 3;
+  frameNr = 0;
 
   keysPressed = {};
   constructor() {}
@@ -44,7 +45,7 @@ export class AsteroidsComponent implements OnInit {
 
     this.ctx.font = "30px Arial";
     this.ctx.fillStyle = "white";
-    this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+    this.ctx.fillText("Click to Start game",this.canvas.width/2-120,this.canvas.height/2);
     this.eventSet = false;
   }
   ngOnDestroy(){
@@ -94,50 +95,51 @@ export class AsteroidsComponent implements OnInit {
       this.shuttle = new Shuttle(this.canvas.width/2, this.canvas.height/2, this.ctx, this.canvas);
       if(this.eventSet == false){
         document.addEventListener("keydown", e => {
-          e.preventDefault();
-          if(e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key == 'ArrowDown' || e.key == 'ArrowRight' || e.key == ' '){
+          
+          if(e.key === 'ArrowUp' || e.key === 'ArrowLeft' || e.key == 'ArrowDown' || e.key == 'ArrowRight' || e.key == ' ' || e.key == 'Escape'){
+            e.preventDefault();
             this.keysPressed[e.key] = true;
 
-            if(e.key == ' '){
-              this.shoot();
-            }
-            else if (this.keysPressed['ArrowUp']) {
-              if(e.key == 'ArrowLeft'){
-                this.turnLeft();
-              }
-              if(e.key == 'ArrowRight'){
-                this.turnRight();
-              }
-              this.accelerate();
-            }
-            else if (this.keysPressed['ArrowDown']) {
-              if(e.key == 'ArrowLeft'){
-                this.turnLeft();
-              }
-              if(e.key == 'ArrowRight'){
-                this.turnRight();
-              }
-              this.decelerate();
-            }
-            else if (this.keysPressed['ArrowLeft']) {
-              this.turnLeft();
-              if(e.key == 'ArrowUp'){
-                this.accelerate();
-              }
-              if(e.key == 'ArrowDown'){
-                this.turnRight();
-              }
-            }
-            else if (this.keysPressed['ArrowRight']) {
-              this.turnRight();
+            // if(e.key == ' '){
+            //   this.shoot();
+            // }
+            // else if (this.keysPressed['ArrowUp']) {
+            //   if(e.key == 'ArrowLeft'){
+            //     this.turnLeft();
+            //   }
+            //   if(e.key == 'ArrowRight'){
+            //     this.turnRight();
+            //   }
+            //   this.accelerate();
+            // }
+            // else if (this.keysPressed['ArrowDown']) {
+            //   if(e.key == 'ArrowLeft'){
+            //     this.turnLeft();
+            //   }
+            //   if(e.key == 'ArrowRight'){
+            //     this.turnRight();
+            //   }
+            //   this.decelerate();
+            // }
+            // else if (this.keysPressed['ArrowLeft']) {
+            //   this.turnLeft();
+            //   if(e.key == 'ArrowUp'){
+            //     this.accelerate();
+            //   }
+            //   if(e.key == 'ArrowDown'){
+            //     this.turnRight();
+            //   }
+            // }
+            // else if (this.keysPressed['ArrowRight']) {
+            //   this.turnRight();
 
-              if(e.key == 'ArrowUp'){
-                this.accelerate();
-              }
-              if(e.key == 'ArrowDown'){
-                this.decelerate();
-              }
-            }
+            //   if(e.key == 'ArrowUp'){
+            //     this.accelerate();
+            //   }
+            //   if(e.key == 'ArrowDown'){
+            //     this.decelerate();
+            //   }
+            // }
           }
         });
         document.addEventListener('keyup', (e) => {
@@ -163,13 +165,12 @@ export class AsteroidsComponent implements OnInit {
   StopGame(){
     this.animateGame = false;
     
-    document.addEventListener("keydown", e => {});
     clearTimeout(this.frame);
     
     this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
     this.ctx.font = "30px Arial";
     this.ctx.fillStyle = "white";
-    this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+    this.ctx.fillText("Click to Start game",this.canvas.width/2-120,this.canvas.height/2);
     
   }
 
@@ -237,6 +238,29 @@ export class AsteroidsComponent implements OnInit {
   drawFrame(ms:number,ctx){
     ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
     if(this.animateGame == true){
+      this.frameNr++;
+      if(this.frameNr == this.fps){
+        this.frameNr = 0;
+      }
+      if(this.frameNr % 2 == 0){
+        if(this.keysPressed['ArrowUp']){
+          this.accelerate();
+        }
+        if(this.keysPressed['ArrowDown']){
+          this.decelerate();
+        }
+        if(this.keysPressed['ArrowLeft']){
+          this.turnLeft();
+        }
+        if(this.keysPressed['ArrowRight']){
+          this.turnRight();
+        }
+      }
+      if(this.frameNr % 3 == 0){
+        if(this.keysPressed[' ']){
+          this.shoot();
+        }
+      }
       //draw
       //starts
       this.stars.forEach(star =>{
@@ -280,7 +304,7 @@ export class AsteroidsComponent implements OnInit {
       this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
       this.ctx.font = "30px Arial";
       this.ctx.fillStyle = "white";
-      this.ctx.fillText("Click to Start game",this.canvas.width/3,this.canvas.height/2);
+      this.ctx.fillText("Click to Start game",this.canvas.width/2-120,this.canvas.height/2);
     }
   }
 }
